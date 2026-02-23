@@ -1,0 +1,24 @@
+<div class="art-background">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
+
+<main class="stats-wrapper">
+    <button class="back-btn glass-3d-btn" (click)="goBack()">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <polyline points="15 18 9 12 15 6"></polyline>
+         </svg>
+         <span>BACK</span>
+     </button>
+
+    <h1 class="stats-title">RECENT WHISPERS</h1>
+
+    <div class="echo-list">
+        <div class="echo-item" *ngFor="let echo of echoes; let i = index" [style.animation-delay]="i * 0.08 + 's'">
+            <span class="echo-location">{{ echo.location }}</span>
+            <span class="echo-time">{{ echo.time }}</span>
+            <div class="glow-line"></div>
+        </div>
+    </div>
+</main>
