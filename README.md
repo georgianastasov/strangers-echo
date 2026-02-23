@@ -40,7 +40,7 @@ The entire application was designed with a heavy focus on modern, cutting-edge a
 
 ### 1. Clone the repository
 ```bash
-git clone [https://github.com/your-username/strangers-echo.git](https://github.com/your-username/strangers-echo.git)
+git clone
 cd strangers-echo
 ```
 
