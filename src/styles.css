@@ -6,6 +6,25 @@ body, html {
     background-color: #0d0d0d;
     color: #e0e0e0;
     font-family: 'Courier New', Courier, monospace;
-    overflow: hidden;
     user-select: none;
+    overflow-x: hidden;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #050000;
+    border-left: 1px solid rgba(255, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, #800000, #ff0000, #800000);
+    border-radius: 10px;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.8);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, #aa0000, #ff3333, #aa0000);
 }
