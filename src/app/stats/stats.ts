@@ -17,6 +17,7 @@ import {
   ApexGrid,
   ApexPlotOptions,
 } from 'ng-apexcharts';
+import * as L from 'leaflet';
 
 export type LineChartOptions = {
   series: ApexAxisChartSeries;
@@ -81,6 +82,9 @@ export class StatsComponent implements OnInit, OnDestroy {
   public timeOfDayOptions!: Partial<DonutChartOptions>;
   public chartsReady = false;
 
+  private map: L.Map | undefined;
+  private markersLayer: L.LayerGroup | undefined;
+
   constructor(
     private router: Router,
     private cdr: ChangeDetectorRef,
@@ -104,11 +108,17 @@ export class StatsComponent implements OnInit, OnDestroy {
       const countryCounts: Record<string, number> = {};
       const cityCounts: Record<string, number> = {};
       const dateCounts: Record<string, number> = {};
+      const locationCoordsMap = new Map<
+        string,
+        { lat: number; lon: number; count: number; name: string }
+      >();
 
       let night = 0,
         morning = 0,
         afternoon = 0,
         evening = 0;
+
+      let latestKey: string | null = null;
 
       this.recentWhispers = [];
 
@@ -138,6 +148,30 @@ export class StatsComponent implements OnInit, OnDestroy {
         else if (hour >= 12 && hour < 18) afternoon++;
         else evening++;
 
+        if (
+          data['lat'] !== undefined &&
+          data['lon'] !== undefined &&
+          data['lat'] !== null &&
+          data['lon'] !== null
+        ) {
+          const key = `${data['lat']}_${data['lon']}`;
+
+          if (index === 0 && now.getTime() - date.getTime() < 5000) {
+            latestKey = key;
+          }
+
+          if (locationCoordsMap.has(key)) {
+            locationCoordsMap.get(key)!.count++;
+          } else {
+            locationCoordsMap.set(key, {
+              lat: data['lat'],
+              lon: data['lon'],
+              count: 1,
+              name: fullLocation,
+            });
+          }
+        }
+
         if (index < 5) {
           this.recentWhispers.push({
             location: fullLocation,
@@ -159,6 +193,66 @@ export class StatsComponent implements OnInit, OnDestroy {
 
       this.chartsReady = true;
       this.cdr.detectChanges();
+
+      setTimeout(() => {
+        if (!this.map) {
+          this.initMap();
+        }
+        this.updateMap(locationCoordsMap, latestKey);
+      }, 100);
+    });
+  }
+
+  public initMap() {
+    if (typeof window === 'undefined') return;
+
+    this.map = L.map('echo-map', {
+      center: [20, 0],
+      zoom: 2,
+      zoomControl: true,
+      attributionControl: false,
+    });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+    }).addTo(this.map);
+
+    this.markersLayer = L.layerGroup().addTo(this.map);
+
+    setTimeout(() => {
+      this.map?.invalidateSize();
+    }, 300);
+  }
+
+  public updateMap(locationMap: Map<string, any>, latestKey: string | null) {
+    if (!this.markersLayer) return;
+    this.markersLayer.clearLayers();
+
+    locationMap.forEach((loc, key) => {
+      const radius = Math.min(18, 4 + loc.count * 1.2);
+      const isLatest = key === latestKey;
+
+      const circle = L.circleMarker([loc.lat, loc.lon], {
+        radius: radius,
+        color: isLatest ? '#ffffff' : '#ff0000',
+        fillColor: '#ff0000',
+        fillOpacity: isLatest ? 0.9 : 0.5,
+        weight: isLatest ? 3 : 1.5,
+        className: isLatest ? 'live-pulse-marker' : '',
+      });
+
+      circle.bindTooltip(
+        `<div style="text-align:center;">
+           <span style="color:#ffcccc; font-size:0.9rem;">${loc.name}</span><br/>
+           <b style="color:#ff4d4d; font-size:1.1rem;">${loc.count}</b> whispers
+         </div>`,
+        {
+          className: 'custom-map-tooltip',
+          direction: 'top',
+        },
+      );
+
+      circle.addTo(this.markersLayer!);
     });
   }
 
@@ -275,6 +369,9 @@ export class StatsComponent implements OnInit, OnDestroy {
   public ngOnDestroy() {
     if (this.unsubscribe) {
       this.unsubscribe();
+    }
+    if (this.map) {
+      this.map.remove();
     }
   }
 

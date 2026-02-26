@@ -238,6 +238,10 @@
     animation-delay: 0.8s;
 }
 
+.delay-9 {
+    animation-delay: 0.9s;
+}
+
 @keyframes slideUpFade {
     to {
         opacity: 1;
@@ -365,7 +369,7 @@
 
 .echo-time {
     color: rgba(255, 200, 200, 0.6);
-    font-family: 'Courier学习New', Courier, monospace;
+    font-family: 'Courier New', Courier, monospace;
     font-size: 0.95rem;
 }
 
@@ -380,6 +384,50 @@
     align-items: center;
     justify-content: center;
     width: 100%;
+}
+
+.map-container {
+    height: 400px;
+    width: 100%;
+    border-radius: 15px;
+    z-index: 1;
+    background-color: transparent;
+}
+
+::ng-deep .leaflet-container {
+    background: #050000 !important;
+    font-family: 'Inter', sans-serif !important;
+    border-radius: 15px;
+}
+
+::ng-deep .custom-map-tooltip {
+    background: rgba(26, 0, 0, 0.95) !important;
+    border: 1px solid #ff0000 !important;
+    color: #fff !important;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.8) !important;
+    border-radius: 8px !important;
+    backdrop-filter: blur(10px);
+}
+
+::ng-deep .leaflet-tooltip-top:before,
+::ng-deep .leaflet-tooltip-bottom:before,
+::ng-deep .leaflet-tooltip-left:before,
+::ng-deep .leaflet-tooltip-right:before {
+    display: none;
+}
+
+::ng-deep .leaflet-control-zoom {
+    border: 1px solid rgba(255, 0, 0, 0.3) !important;
+}
+
+::ng-deep .leaflet-control-zoom a {
+    background-color: rgba(20, 0, 0, 0.8) !important;
+    color: #ffcccc !important;
+}
+
+::ng-deep .leaflet-control-zoom a:hover {
+    background-color: rgba(60, 0, 0, 0.9) !important;
+    color: #ffffff !important;
 }
 
 ::ng-deep .apexcharts-tooltip {
@@ -397,4 +445,29 @@
 
 ::ng-deep .apexcharts-text {
     font-family: 'Inter', sans-serif !important;
+}
+
+::ng-deep .live-pulse-marker {
+    animation: livePulse 2.5s ease-out forwards;
+    transform-origin: center;
+}
+
+@keyframes livePulse {
+    0% {
+        stroke-width: 10;
+        stroke: #ffffff;
+        fill-opacity: 1;
+    }
+
+    20% {
+        stroke-width: 15;
+        stroke: #ffcccc;
+        fill-opacity: 0.8;
+    }
+
+    100% {
+        stroke-width: 1.5;
+        stroke: #ff0000;
+        fill-opacity: 0.5;
+    }
 }

@@ -6,7 +6,8 @@
 
 <main class="stats-wrapper">
     <button class="back-btn glass-3d-btn" (click)="goBack()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
         <span>BACK</span>
@@ -26,71 +27,7 @@
             <span class="metric-value">{{ totalTracked }}</span>
         </div>
 
-        <div class="chart-card glass-panel delay-4 full-width" *ngIf="chartsReady">
-            <h3 class="card-title">ACTIVITY TIMELINE</h3>
-            <apx-chart 
-                [series]="timelineChartOptions.series!" 
-                [chart]="timelineChartOptions.chart!"
-                [xaxis]="timelineChartOptions.xaxis!" 
-                [stroke]="timelineChartOptions.stroke!"
-                [colors]="timelineChartOptions.colors!" 
-                [fill]="timelineChartOptions.fill!"
-                [dataLabels]="timelineChartOptions.dataLabels!" 
-                [grid]="timelineChartOptions.grid!"
-                [theme]="timelineChartOptions.theme!" 
-                [tooltip]="timelineChartOptions.tooltip!">
-            </apx-chart>
-        </div>
-
-        <div class="chart-card glass-panel delay-5" *ngIf="chartsReady">
-            <h3 class="card-title">TOP COUNTRIES</h3>
-            <apx-chart 
-                [series]="countryChartOptions.series!" 
-                [chart]="countryChartOptions.chart!"
-                [xaxis]="countryChartOptions.xaxis!" 
-                [yaxis]="countryChartOptions.yaxis!"
-                [colors]="countryChartOptions.colors!" 
-                [dataLabels]="countryChartOptions.dataLabels!"
-                [theme]="countryChartOptions.theme!" 
-                [grid]="countryChartOptions.grid!"
-                [tooltip]="countryChartOptions.tooltip!" 
-                [plotOptions]="countryChartOptions.plotOptions!">
-            </apx-chart>
-        </div>
-
-        <div class="chart-card glass-panel delay-6" *ngIf="chartsReady">
-            <h3 class="card-title">TIME OF DAY</h3>
-            <div class="chart-center-wrapper">
-                <apx-chart 
-                    [series]="timeOfDayOptions.series!" 
-                    [chart]="timeOfDayOptions.chart!"
-                    [labels]="timeOfDayOptions.labels!"
-                    [colors]="timeOfDayOptions.colors!" 
-                    [stroke]="timeOfDayOptions.stroke!"
-                    [plotOptions]="timeOfDayOptions.plotOptions!"
-                    [theme]="timeOfDayOptions.theme!" 
-                    [tooltip]="timeOfDayOptions.tooltip!">
-                </apx-chart>
-            </div>
-        </div>
-
-        <div class="chart-card glass-panel delay-7" *ngIf="chartsReady">
-            <h3 class="card-title">TOP CITIES</h3>
-            <apx-chart 
-                [series]="cityChartOptions.series!" 
-                [chart]="cityChartOptions.chart!"
-                [xaxis]="cityChartOptions.xaxis!" 
-                [yaxis]="cityChartOptions.yaxis!"
-                [colors]="cityChartOptions.colors!" 
-                [dataLabels]="cityChartOptions.dataLabels!"
-                [theme]="cityChartOptions.theme!" 
-                [grid]="cityChartOptions.grid!"
-                [tooltip]="cityChartOptions.tooltip!" 
-                [plotOptions]="cityChartOptions.plotOptions!">
-            </apx-chart>
-        </div>
-
-        <div class="list-card glass-panel delay-8 full-width">
+        <div class="list-card glass-panel delay-9 full-width">
             <h3 class="card-title live-indicator">LIVE FEED</h3>
             <div class="echo-list">
                 <div class="echo-item" *ngFor="let echo of recentWhispers">
@@ -99,6 +36,52 @@
                     <div class="glow-line"></div>
                 </div>
             </div>
+        </div>
+
+        <div class="chart-card glass-panel delay-4 full-width" *ngIf="chartsReady">
+            <h3 class="card-title">ACTIVITY TIMELINE</h3>
+            <apx-chart [series]="timelineChartOptions.series!" [chart]="timelineChartOptions.chart!"
+                [xaxis]="timelineChartOptions.xaxis!" [stroke]="timelineChartOptions.stroke!"
+                [colors]="timelineChartOptions.colors!" [fill]="timelineChartOptions.fill!"
+                [dataLabels]="timelineChartOptions.dataLabels!" [grid]="timelineChartOptions.grid!"
+                [theme]="timelineChartOptions.theme!" [tooltip]="timelineChartOptions.tooltip!">
+            </apx-chart>
+        </div>
+
+        <div class="chart-card glass-panel delay-5" *ngIf="chartsReady">
+            <h3 class="card-title">TOP COUNTRIES</h3>
+            <apx-chart [series]="countryChartOptions.series!" [chart]="countryChartOptions.chart!"
+                [xaxis]="countryChartOptions.xaxis!" [yaxis]="countryChartOptions.yaxis!"
+                [colors]="countryChartOptions.colors!" [dataLabels]="countryChartOptions.dataLabels!"
+                [theme]="countryChartOptions.theme!" [grid]="countryChartOptions.grid!"
+                [tooltip]="countryChartOptions.tooltip!" [plotOptions]="countryChartOptions.plotOptions!">
+            </apx-chart>
+        </div>
+
+        <div class="chart-card glass-panel delay-6" *ngIf="chartsReady">
+            <h3 class="card-title">TIME OF DAY</h3>
+            <div class="chart-center-wrapper">
+                <apx-chart [series]="timeOfDayOptions.series!" [chart]="timeOfDayOptions.chart!"
+                    [labels]="timeOfDayOptions.labels!" [colors]="timeOfDayOptions.colors!"
+                    [stroke]="timeOfDayOptions.stroke!" [plotOptions]="timeOfDayOptions.plotOptions!"
+                    [theme]="timeOfDayOptions.theme!" [tooltip]="timeOfDayOptions.tooltip!">
+                </apx-chart>
+            </div>
+        </div>
+
+        <div class="chart-card glass-panel delay-7" *ngIf="chartsReady">
+            <h3 class="card-title">TOP CITIES</h3>
+            <apx-chart [series]="cityChartOptions.series!" [chart]="cityChartOptions.chart!"
+                [xaxis]="cityChartOptions.xaxis!" [yaxis]="cityChartOptions.yaxis!" [colors]="cityChartOptions.colors!"
+                [dataLabels]="cityChartOptions.dataLabels!" [theme]="cityChartOptions.theme!"
+                [grid]="cityChartOptions.grid!" [tooltip]="cityChartOptions.tooltip!"
+                [plotOptions]="cityChartOptions.plotOptions!">
+            </apx-chart>
+        </div>
+
+        <div class="chart-card glass-panel delay-8 full-width" *ngIf="chartsReady">
+            <h3 class="card-title">GLOBAL ECHOES MAP</h3>
+            <div id="echo-map" class="map-container"></div>
         </div>
     </div>
 </main>
