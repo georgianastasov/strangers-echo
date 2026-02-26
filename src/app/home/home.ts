@@ -20,7 +20,6 @@ import {
 export class HomeComponent implements OnInit {
   public isPressed = false;
   public echoMessage = '';
-  
   private previousClick: any = null;
 
   private firestore: Firestore = inject(Firestore);
@@ -46,16 +45,51 @@ export class HomeComponent implements OnInit {
 
     this.isPressed = true;
 
+    let currentLat: number | null = null;
+    let currentLon: number | null = null;
+    let location = 'Unknown';
+
+    try {
+      const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
+      const geoData = await res.json();
+      const city = geoData.city || '';
+      const country = geoData.country || '';
+
+      location =
+        city && country ? `${city}, ${country}` : city ? city : country ? country : 'Unknown';
+
+      if (geoData.latitude && geoData.longitude) {
+        currentLat = parseFloat(geoData.latitude);
+        currentLon = parseFloat(geoData.longitude);
+      }
+    } catch (error) {
+      location = 'Unknown';
+    }
+
     let message = 'You are the first to touch this.';
 
     if (this.previousClick && this.previousClick.timestamp) {
       const loc = this.previousClick.location || 'Unknown';
       const date = this.previousClick.timestamp.toDate();
       const timeAgo = this.getTimeAgo(date);
-      message = `Someone in ${loc} touched this ${timeAgo}.`;
-    } else if (this.previousClick) {
-      const loc = this.previousClick.location || 'Unknown';
-      message = `Someone in ${loc} touched this recently.`;
+
+      let distanceText = '';
+      if (
+        currentLat !== null &&
+        currentLon !== null &&
+        this.previousClick.lat &&
+        this.previousClick.lon
+      ) {
+        const distance = this.calculateDistance(
+          currentLat,
+          currentLon,
+          this.previousClick.lat,
+          this.previousClick.lon,
+        );
+        distanceText = ` (${distance}km away)`;
+      }
+
+      message = `Someone in ${loc}${distanceText} touched this ${timeAgo}.`;
     }
 
     setTimeout(() => {
@@ -64,23 +98,19 @@ export class HomeComponent implements OnInit {
     }, 600);
 
     try {
-      const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
-      const geoData = await res.json();
-      const city = geoData.city || '';
-      const country = geoData.country || '';
-
-      const location =
-        city && country ? `${city}, ${country}` : city ? city : country ? country : 'Unknown';
-
       const clicksRef = collection(this.firestore, 'clicks');
       await addDoc(clicksRef, {
         location: location,
+        lat: currentLat,
+        lon: currentLon,
         timestamp: serverTimestamp(),
       });
     } catch (error) {
       const clicksRef = collection(this.firestore, 'clicks');
       await addDoc(clicksRef, {
         location: 'Unknown',
+        lat: null,
+        lon: null,
         timestamp: serverTimestamp(),
       });
     }
@@ -105,6 +135,26 @@ export class HomeComponent implements OnInit {
 
     const days = Math.floor(hours / 24);
     return days === 1 ? '1 day ago' : `${days} days ago`;
+  }
+
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): string {
+    const R = 6371;
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLon = this.deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.deg2rad(lat1)) *
+        Math.cos(this.deg2rad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+
+    return Math.round(distance).toLocaleString('en-US');
+  }
+
+  private deg2rad(deg: number): number {
+    return deg * (Math.PI / 180);
   }
 
   public goToStats() {
