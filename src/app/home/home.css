@@ -253,3 +253,24 @@
     opacity: 1;
     transform: translateY(0);
 }
+
+.legal-disclaimer {
+    position: absolute;
+    bottom: 25px;
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+    font-size: 0.75rem;
+    color: rgba(255, 200, 200, 0.25);
+    letter-spacing: 1px;
+    line-height: 1.6;
+    pointer-events: none;
+    transition: color 0.3s ease;
+}
+
+@media (max-height: 700px) {
+    .legal-disclaimer {
+        bottom: 15px;
+        font-size: 0.65rem;
+    }
+}
