@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   Firestore,
@@ -17,10 +17,13 @@ import {
   templateUrl: './home.html',
   styleUrls: ['./home.css'],
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
   public isPressed = false;
   public echoMessage = '';
+  public buttonText = 'TOUCH';
+  
   private previousClick: any = null;
+  private cooldownInterval: any;
 
   private firestore: Firestore = inject(Firestore);
 
@@ -30,6 +33,8 @@ export class HomeComponent implements OnInit {
   ) {}
 
   public ngOnInit() {
+    this.checkCooldown();
+
     const clicksRef = collection(this.firestore, 'clicks');
     const q = query(clicksRef, orderBy('timestamp', 'desc'), limit(1));
 
@@ -40,10 +45,58 @@ export class HomeComponent implements OnInit {
     });
   }
 
+  public ngOnDestroy() {
+    if (this.cooldownInterval) {
+      clearInterval(this.cooldownInterval);
+    }
+  }
+
+  private checkCooldown() {
+    const cooldownEnd = localStorage.getItem('echo_cooldown');
+    if (cooldownEnd) {
+      const endTime = parseInt(cooldownEnd, 10);
+      if (endTime > Date.now()) {
+        this.isPressed = true;
+        this.startCooldownTimer(endTime, true);
+      } else {
+        localStorage.removeItem('echo_cooldown');
+      }
+    }
+  }
+
+  private startCooldownTimer(endTime: number, isFromLoad: boolean) {
+    this.cooldownInterval = setInterval(() => {
+      const remaining = Math.ceil((endTime - Date.now()) / 1000);
+
+      if (remaining <= 0) {
+        clearInterval(this.cooldownInterval);
+        this.isPressed = false;
+        this.buttonText = 'TOUCH';
+        if (this.echoMessage.includes('traveling')) {
+          this.echoMessage = '';
+        }
+        localStorage.removeItem('echo_cooldown');
+        this.cdr.detectChanges();
+      } else {
+        const m = Math.floor(remaining / 60)
+          .toString()
+          .padStart(2, '0');
+        const s = (remaining % 60).toString().padStart(2, '0');
+        this.buttonText = `${m}:${s}`;
+
+        if (isFromLoad) {
+          this.echoMessage = `Your echo is traveling.`;
+        }
+        this.cdr.detectChanges();
+      }
+    }, 1000);
+  }
+
   public async pressButton() {
     if (this.isPressed) return;
 
     this.isPressed = true;
+    this.buttonText = 'TOUCHED';
 
     let currentLat: number | null = null;
     let currentLon: number | null = null;
@@ -94,6 +147,9 @@ export class HomeComponent implements OnInit {
 
     setTimeout(() => {
       this.echoMessage = message;
+      const endTime = Date.now() + 60000;
+      localStorage.setItem('echo_cooldown', endTime.toString());
+      this.startCooldownTimer(endTime, false);
       this.cdr.detectChanges();
     }, 600);
 
