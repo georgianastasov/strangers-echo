@@ -27,7 +27,7 @@
             <span class="metric-value">{{ totalTracked() }}</span>
         </div>
 
-        <div class="list-card glass-panel delay-9 full-width">
+        <div class="list-card glass-panel delay-4 full-width">
             <h3 class="card-title live-indicator">LIVE FEED</h3>
             <div class="echo-list">
                 <div class="echo-item" *ngFor="let echo of recentWhispers()">
@@ -38,48 +38,82 @@
             </div>
         </div>
 
-        <div class="chart-card glass-panel delay-4 full-width" *ngIf="chartsReady()">
+        <div class="chart-card glass-panel delay-5 full-width" *ngIf="chartsReady()">
             <h3 class="card-title">ACTIVITY TIMELINE</h3>
             <apx-chart [series]="timelineChartOptions.series!" [chart]="timelineChartOptions.chart!"
                 [xaxis]="timelineChartOptions.xaxis!" [stroke]="timelineChartOptions.stroke!"
                 [colors]="timelineChartOptions.colors!" [fill]="timelineChartOptions.fill!"
                 [dataLabels]="timelineChartOptions.dataLabels!" [grid]="timelineChartOptions.grid!"
-                [theme]="timelineChartOptions.theme!" [tooltip]="timelineChartOptions.tooltip!">
-            </apx-chart>
+                [theme]="timelineChartOptions.theme!" [tooltip]="timelineChartOptions.tooltip!"></apx-chart>
         </div>
 
-        <div class="chart-card glass-panel delay-5" *ngIf="chartsReady()">
+        <div class="chart-card glass-panel delay-6" *ngIf="chartsReady()">
             <h3 class="card-title">TOP COUNTRIES</h3>
             <apx-chart [series]="countryChartOptions.series!" [chart]="countryChartOptions.chart!"
                 [xaxis]="countryChartOptions.xaxis!" [yaxis]="countryChartOptions.yaxis!"
                 [colors]="countryChartOptions.colors!" [dataLabels]="countryChartOptions.dataLabels!"
                 [theme]="countryChartOptions.theme!" [grid]="countryChartOptions.grid!"
-                [tooltip]="countryChartOptions.tooltip!" [plotOptions]="countryChartOptions.plotOptions!">
-            </apx-chart>
+                [tooltip]="countryChartOptions.tooltip!" [plotOptions]="countryChartOptions.plotOptions!"></apx-chart>
         </div>
 
-        <div class="chart-card glass-panel delay-6" *ngIf="chartsReady()">
+        <div class="chart-card glass-panel delay-7" *ngIf="chartsReady()">
             <h3 class="card-title">TIME OF DAY</h3>
             <div class="chart-center-wrapper">
                 <apx-chart [series]="timeOfDayOptions.series!" [chart]="timeOfDayOptions.chart!"
                     [labels]="timeOfDayOptions.labels!" [colors]="timeOfDayOptions.colors!"
                     [stroke]="timeOfDayOptions.stroke!" [plotOptions]="timeOfDayOptions.plotOptions!"
-                    [theme]="timeOfDayOptions.theme!" [tooltip]="timeOfDayOptions.tooltip!">
-                </apx-chart>
+                    [theme]="timeOfDayOptions.theme!" [tooltip]="timeOfDayOptions.tooltip!"></apx-chart>
             </div>
         </div>
 
-        <div class="chart-card glass-panel delay-7" *ngIf="chartsReady()">
+        <div class="chart-card glass-panel delay-8" *ngIf="chartsReady()">
             <h3 class="card-title">TOP CITIES</h3>
             <apx-chart [series]="cityChartOptions.series!" [chart]="cityChartOptions.chart!"
                 [xaxis]="cityChartOptions.xaxis!" [yaxis]="cityChartOptions.yaxis!" [colors]="cityChartOptions.colors!"
                 [dataLabels]="cityChartOptions.dataLabels!" [theme]="cityChartOptions.theme!"
                 [grid]="cityChartOptions.grid!" [tooltip]="cityChartOptions.tooltip!"
-                [plotOptions]="cityChartOptions.plotOptions!">
-            </apx-chart>
+                [plotOptions]="cityChartOptions.plotOptions!"></apx-chart>
         </div>
 
-        <div class="chart-card glass-panel delay-8 full-width" *ngIf="chartsReady()">
+        <div class="list-card glass-panel delay-9 full-width" *ngIf="chartsReady()">
+            <div class="observers-header">
+                <h3 class="card-title live-indicator no-margin">LIVE OBSERVERS</h3>
+                <div class="pulse-counter">
+                    <span class="pulse-number">{{ estimatedLiveUsers() }}</span>
+                    <span class="pulse-label">ACTIVE NOW</span>
+                </div>
+            </div>
+
+            <div class="observers-scroll-area">
+                <div class="observer-item" *ngFor="let country of allCountriesList()">
+                    <div class="country-info">
+                        <img *ngIf="getFlagUrl(country.name)" [src]="getFlagUrl(country.name)" class="flag-img"
+                            [alt]="country.name" loading="lazy" decoding="async"
+                            (error)="$event.target.style.display='none'">
+
+                        <span class="country-name">{{ country.name }}</span>
+                    </div>
+                    <span class="country-count">
+                        <div class="live-dot"></div> {{ country.count }} LIVE
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="metric-card glass-panel delay-10" *ngIf="chartsReady()">
+            <span class="metric-label">LAST JUMP</span>
+            <span class="metric-value jump-text">{{ lastJumpDistance() || '---' }}</span>
+        </div>
+        <div class="metric-card glass-panel delay-11" *ngIf="chartsReady()">
+            <span class="metric-label">RECENT TRAIL</span>
+            <span class="metric-value jump-text">{{ recentTrailDistance() || '---' }}</span>
+        </div>
+        <div class="metric-card glass-panel delay-12" *ngIf="chartsReady()">
+            <span class="metric-label">ACTIVE ZONES</span>
+            <span class="metric-value">{{ activeZones() }}</span>
+        </div>
+
+        <div class="chart-card glass-panel delay-13 full-width" *ngIf="chartsReady()">
             <h3 class="card-title live-indicator">GLOBAL ECHOES MAP</h3>
             <div id="echo-map" class="map-container"></div>
         </div>

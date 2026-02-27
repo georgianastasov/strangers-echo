@@ -74,7 +74,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.buttonText.set(`${m}:${s}`);
 
         if (isFromLoad) {
-          this.echoMessage.set(`Your echo is traveling. Return in ${m}:${s}`);
+          this.echoMessage.set(`Your echo is traveling.`);
         }
       }
     }, 1000);
