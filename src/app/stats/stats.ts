@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef, OnDestroy } from '@angular/core';
+import { Component, OnInit, inject, OnDestroy, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Firestore, doc, onSnapshot } from '@angular/fire/firestore';
 import { CommonModule } from '@angular/common';
@@ -66,29 +66,24 @@ export type DonutChartOptions = {
   styleUrls: ['./stats.css'],
 })
 export class StatsComponent implements OnInit, OnDestroy {
-  private firestore: Firestore = inject(Firestore);
-  private unsubscribe: any;
+  public totalTracked = signal(0);
+  public lastHour = signal(0);
+  public last24h = signal(0);
+  public recentWhispers = signal<any[]>([]);
+  public chartsReady = signal(false);
 
-  public totalTracked = 0;
-  public lastHour = 0;
-  public last24h = 0;
-
-  public recentWhispers: any[] = [];
   public topCities: { name: string; count: number }[] = [];
-
   public timelineChartOptions!: Partial<LineChartOptions>;
   public countryChartOptions!: Partial<BarChartOptions>;
   public cityChartOptions!: Partial<BarChartOptions>;
   public timeOfDayOptions!: Partial<DonutChartOptions>;
-  public chartsReady = false;
 
+  private firestore: Firestore = inject(Firestore);
+  private unsubscribe: any;
   private map: L.Map | undefined;
   private markersLayer: L.LayerGroup | undefined;
 
-  constructor(
-    private router: Router,
-    private cdr: ChangeDetectorRef,
-  ) {
+  constructor(private router: Router) {
     this.initEmptyCharts();
   }
 
@@ -102,13 +97,13 @@ export class StatsComponent implements OnInit, OnDestroy {
       const now = Date.now();
       const oneHourAgo = now - 60 * 60 * 1000;
 
-      this.totalTracked = data['totalTracked'] || 0;
+      this.totalTracked.set(data['totalTracked'] || 0);
 
       const timestamps = data['recentTimestamps'] || [];
-      this.last24h = timestamps.length;
-      this.lastHour = timestamps.filter((t: number) => t > oneHourAgo).length;
+      this.last24h.set(timestamps.length);
+      this.lastHour.set(timestamps.filter((t: number) => t > oneHourAgo).length);
 
-      this.recentWhispers = data['recentWhispers'] || [];
+      this.recentWhispers.set(data['recentWhispers'] || []);
 
       const cityCounts = data['cities'] || {};
       this.topCities = Object.entries(cityCounts)
@@ -122,8 +117,7 @@ export class StatsComponent implements OnInit, OnDestroy {
         data['times'] || [0, 0, 0, 0],
       );
 
-      this.chartsReady = true;
-      this.cdr.detectChanges();
+      this.chartsReady.set(true);
 
       setTimeout(() => {
         if (!this.map) {
@@ -131,8 +125,9 @@ export class StatsComponent implements OnInit, OnDestroy {
         }
 
         let latestKey: string | null = null;
-        if (this.recentWhispers.length > 0) {
-          const latest = this.recentWhispers[0];
+        const currentWhispers = this.recentWhispers();
+        if (currentWhispers.length > 0) {
+          const latest = currentWhispers[0];
           if (now - latest.timestamp < 5000 && latest.lat !== null && latest.lon !== null) {
             latestKey = `${latest.lat}_${latest.lon}`;
           }

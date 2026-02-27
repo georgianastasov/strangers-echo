@@ -7,7 +7,8 @@
 <main class="app-container">
     <img src="favicon.png" class="site-logo" alt="Logo">
 
-    <button class="stats-button" [class.visible]="echoMessage !== '' || milestoneMessage !== ''" (click)="goToStats()">
+    <button class="stats-button" [class.visible]="echoMessage() !== '' || milestoneMessage() !== ''"
+        (click)="goToStats()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
             stroke-linejoin="round">
             <line x1="18" y1="20" x2="18" y2="10"></line>
@@ -17,13 +18,13 @@
     </button>
 
     <div class="button-wrapper">
-        <button class="mystic-button" [class.pressed]="isPressed" (click)="pressButton()">
-            <span>{{ buttonText }}</span>
+        <button class="mystic-button" [class.pressed]="isPressed()" (click)="pressButton()">
+            <span>{{ buttonText() }}</span>
         </button>
     </div>
 
-    <div class="echo-glass-panel" [class.visible]="echoMessage !== '' || milestoneMessage !== ''">
-        {{ milestoneMessage !== '' ? milestoneMessage : echoMessage }}
+    <div class="echo-glass-panel" [class.visible]="echoMessage() !== '' || milestoneMessage() !== ''">
+        {{ milestoneMessage() !== '' ? milestoneMessage() : echoMessage() }}
     </div>
 
     <footer class="legal-disclaimer">

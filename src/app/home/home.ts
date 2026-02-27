@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   Firestore,
@@ -21,19 +21,16 @@ import confetti from 'canvas-confetti';
   styleUrls: ['./home.css'],
 })
 export class HomeComponent implements OnInit, OnDestroy {
-  public isPressed = false;
-  public echoMessage = '';
-  public milestoneMessage = '';
-  public buttonText = 'TOUCH';
+  public isPressed = signal(false);
+  public echoMessage = signal('');
+  public milestoneMessage = signal('');
+  public buttonText = signal('TOUCH');
+
   private previousClick: any = null;
   private cooldownInterval: any;
-
   private firestore: Firestore = inject(Firestore);
 
-  constructor(
-    private router: Router,
-    private cdr: ChangeDetectorRef,
-  ) {}
+  constructor(private router: Router) {}
 
   public ngOnInit() {
     this.checkCooldown();
@@ -50,7 +47,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (cooldownEnd) {
       const endTime = parseInt(cooldownEnd, 10);
       if (endTime > Date.now()) {
-        this.isPressed = true;
+        this.isPressed.set(true);
         this.startCooldownTimer(endTime, true);
       } else {
         localStorage.removeItem('echo_cooldown');
@@ -64,23 +61,21 @@ export class HomeComponent implements OnInit, OnDestroy {
 
       if (remaining <= 0) {
         clearInterval(this.cooldownInterval);
-        this.isPressed = false;
-        this.buttonText = 'TOUCH';
-        this.echoMessage = '';
-        this.milestoneMessage = '';
+        this.isPressed.set(false);
+        this.buttonText.set('TOUCH');
+        this.echoMessage.set('');
+        this.milestoneMessage.set('');
         localStorage.removeItem('echo_cooldown');
-        this.cdr.detectChanges();
       } else {
         const m = Math.floor(remaining / 60)
           .toString()
           .padStart(2, '0');
         const s = (remaining % 60).toString().padStart(2, '0');
-        this.buttonText = `${m}:${s}`;
+        this.buttonText.set(`${m}:${s}`);
 
         if (isFromLoad) {
-          this.echoMessage = `Your echo is traveling.`;
+          this.echoMessage.set(`Your echo is traveling. Return in ${m}:${s}`);
         }
-        this.cdr.detectChanges();
       }
     }, 1000);
   }
@@ -102,12 +97,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   public async pressButton() {
-    if (this.isPressed) return;
+    if (this.isPressed()) return;
 
     this.playMysticSound();
-
-    this.isPressed = true;
-    this.buttonText = 'TOUCHED';
+    this.isPressed.set(true);
+    this.buttonText.set('TOUCHED');
 
     let currentLat: number | null = null;
     let currentLon: number | null = null;
@@ -253,26 +247,26 @@ export class HomeComponent implements OnInit, OnDestroy {
         const isMilestone = milestones.includes(totalClicks);
 
         if (isMilestone) {
-          this.milestoneMessage = `YOU ARE THE ${totalClicks.toLocaleString()}TH PERSON TO TOUCH THIS`;
-          this.echoMessage = '';
+          this.milestoneMessage.set(
+            `YOU ARE THE ${totalClicks.toLocaleString()}TH PERSON TO TOUCH THIS`,
+          );
+          this.echoMessage.set('');
           this.fireRedConfetti();
         } else {
-          this.echoMessage = normalMessage;
-          this.milestoneMessage = '';
+          this.echoMessage.set(normalMessage);
+          this.milestoneMessage.set('');
         }
 
         const endTime = Date.now() + 60000;
         localStorage.setItem('echo_cooldown', endTime.toString());
         this.startCooldownTimer(endTime, false);
-        this.cdr.detectChanges();
       }, 600);
     } catch (error) {
       setTimeout(() => {
-        this.echoMessage = normalMessage;
+        this.echoMessage.set(normalMessage);
         const endTime = Date.now() + 60000;
         localStorage.setItem('echo_cooldown', endTime.toString());
         this.startCooldownTimer(endTime, false);
-        this.cdr.detectChanges();
       }, 600);
     }
   }
