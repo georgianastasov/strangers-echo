@@ -67,6 +67,19 @@
     font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
+.site-logo {
+    position: absolute;
+    top: 35px;
+    left: 45px;
+    width: 60px;
+    height: 60px;
+    z-index: 20;
+    filter: drop-shadow(0 0 20px rgba(255, 0, 0, 0.7));
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    user-select: none;
+    pointer-events: none;
+}
+
 .button-wrapper {
     position: relative;
     perspective: 1000px;
@@ -249,13 +262,6 @@
     transition: color 0.3s ease;
 }
 
-@media (max-height: 700px) {
-    .legal-disclaimer {
-        bottom: 15px;
-        font-size: 0.65rem;
-    }
-}
-
 .echo-glass-panel {
     margin-top: 60px;
     background: rgba(30, 0, 0, 0.35);
@@ -284,9 +290,28 @@
 }
 
 @media (max-width: 600px) {
+    .site-logo {
+        top: 25px;
+        left: 25px;
+        width: 45px;
+        height: 45px;
+    }
+
     .echo-glass-panel {
         font-size: 0.85rem;
         padding: 12px 20px;
         letter-spacing: 2px;
+    }
+
+    .legal-disclaimer {
+        bottom: 15px;
+        font-size: 0.65rem;
+    }
+}
+
+@media (max-height: 700px) {
+    .legal-disclaimer {
+        bottom: 15px;
+        font-size: 0.65rem;
     }
 }
