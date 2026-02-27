@@ -5,8 +5,9 @@
 </div>
 
 <main class="app-container">
-    <button class="stats-button" [class.visible]="echoMessage !== ''" (click)="goToStats()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <button class="stats-button" [class.visible]="echoMessage !== '' || milestoneMessage !== ''" (click)="goToStats()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
             <line x1="18" y1="20" x2="18" y2="10"></line>
             <line x1="12" y1="20" x2="12" y2="4"></line>
             <line x1="6" y1="20" x2="6" y2="14"></line>
@@ -19,11 +20,11 @@
         </button>
     </div>
 
-    <p class="echo-text" [class.visible]="echoMessage !== ''">
-        {{ echoMessage }}
-    </p>
+    <div class="echo-glass-panel" [class.visible]="echoMessage !== '' || milestoneMessage !== ''">
+        {{ milestoneMessage !== '' ? milestoneMessage : echoMessage }}
+    </div>
 
     <footer class="legal-disclaimer">
-        Anonymous experiment. Touching shares your approximate city. No IPs are stored.    
+        Anonymous experiment. Touching shares your approximate city. No IPs are stored.
     </footer>
 </main>

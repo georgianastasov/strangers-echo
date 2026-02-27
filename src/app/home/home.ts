@@ -9,7 +9,9 @@ import {
   orderBy,
   limit,
   onSnapshot,
+  getCountFromServer,
 } from '@angular/fire/firestore';
+import confetti from 'canvas-confetti';
 
 @Component({
   selector: 'app-home',
@@ -20,8 +22,8 @@ import {
 export class HomeComponent implements OnInit, OnDestroy {
   public isPressed = false;
   public echoMessage = '';
+  public milestoneMessage = '';
   public buttonText = 'TOUCH';
-  
   private previousClick: any = null;
   private cooldownInterval: any;
 
@@ -51,49 +53,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
-  private checkCooldown() {
-    const cooldownEnd = localStorage.getItem('echo_cooldown');
-    if (cooldownEnd) {
-      const endTime = parseInt(cooldownEnd, 10);
-      if (endTime > Date.now()) {
-        this.isPressed = true;
-        this.startCooldownTimer(endTime, true);
-      } else {
-        localStorage.removeItem('echo_cooldown');
-      }
-    }
-  }
-
-  private startCooldownTimer(endTime: number, isFromLoad: boolean) {
-    this.cooldownInterval = setInterval(() => {
-      const remaining = Math.ceil((endTime - Date.now()) / 1000);
-
-      if (remaining <= 0) {
-        clearInterval(this.cooldownInterval);
-        this.isPressed = false;
-        this.buttonText = 'TOUCH';
-        if (this.echoMessage.includes('traveling')) {
-          this.echoMessage = '';
-        }
-        localStorage.removeItem('echo_cooldown');
-        this.cdr.detectChanges();
-      } else {
-        const m = Math.floor(remaining / 60)
-          .toString()
-          .padStart(2, '0');
-        const s = (remaining % 60).toString().padStart(2, '0');
-        this.buttonText = `${m}:${s}`;
-
-        if (isFromLoad) {
-          this.echoMessage = `Your echo is traveling.`;
-        }
-        this.cdr.detectChanges();
-      }
-    }, 1000);
-  }
-
   public async pressButton() {
     if (this.isPressed) return;
+
+    this.playMysticSound();
 
     this.isPressed = true;
     this.buttonText = 'TOUCHED';
@@ -119,7 +82,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       location = 'Unknown';
     }
 
-    let message = 'You are the first to touch this.';
+    let normalMessage = 'You are the first to touch this.';
 
     if (this.previousClick && this.previousClick.timestamp) {
       const loc = this.previousClick.location || 'Unknown';
@@ -142,16 +105,8 @@ export class HomeComponent implements OnInit, OnDestroy {
         distanceText = ` (${distance}km away)`;
       }
 
-      message = `Someone in ${loc}${distanceText} touched this ${timeAgo}.`;
+      normalMessage = `Someone in ${loc}${distanceText} touched this ${timeAgo}.`;
     }
-
-    setTimeout(() => {
-      this.echoMessage = message;
-      const endTime = Date.now() + 60000;
-      localStorage.setItem('echo_cooldown', endTime.toString());
-      this.startCooldownTimer(endTime, false);
-      this.cdr.detectChanges();
-    }, 600);
 
     try {
       const clicksRef = collection(this.firestore, 'clicks');
@@ -161,34 +116,108 @@ export class HomeComponent implements OnInit, OnDestroy {
         lon: currentLon,
         timestamp: serverTimestamp(),
       });
+
+      const countSnapshot = await getCountFromServer(clicksRef);
+      const totalClicks = countSnapshot.data().count;
+
+      setTimeout(() => {
+        const milestones = [10, 50, 100, 1000, 10000, 100000, 1000000];
+        const isMilestone = milestones.includes(totalClicks);
+
+        if (isMilestone) {
+          this.milestoneMessage = `YOU ARE THE ${totalClicks.toLocaleString()}TH PERSON TO TOUCH THIS`;
+          this.echoMessage = '';
+          this.fireRedConfetti();
+        } else {
+          this.echoMessage = normalMessage;
+          this.milestoneMessage = '';
+        }
+
+        const endTime = Date.now() + 60000;
+        localStorage.setItem('echo_cooldown', endTime.toString());
+        this.startCooldownTimer(endTime, false);
+        this.cdr.detectChanges();
+      }, 600);
     } catch (error) {
-      const clicksRef = collection(this.firestore, 'clicks');
-      await addDoc(clicksRef, {
-        location: 'Unknown',
-        lat: null,
-        lon: null,
-        timestamp: serverTimestamp(),
-      });
+      setTimeout(() => {
+        this.echoMessage = normalMessage;
+        const endTime = Date.now() + 60000;
+        localStorage.setItem('echo_cooldown', endTime.toString());
+        this.startCooldownTimer(endTime, false);
+        this.cdr.detectChanges();
+      }, 600);
     }
+  }
+
+  public goToStats() {
+    this.router.navigate(['/stats']);
+  }
+
+  private checkCooldown() {
+    const cooldownEnd = localStorage.getItem('echo_cooldown');
+    if (cooldownEnd) {
+      const endTime = parseInt(cooldownEnd, 10);
+      if (endTime > Date.now()) {
+        this.isPressed = true;
+        this.startCooldownTimer(endTime, true);
+      } else {
+        localStorage.removeItem('echo_cooldown');
+      }
+    }
+  }
+
+  private startCooldownTimer(endTime: number, isFromLoad: boolean) {
+    this.cooldownInterval = setInterval(() => {
+      const remaining = Math.ceil((endTime - Date.now()) / 1000);
+
+      if (remaining <= 0) {
+        clearInterval(this.cooldownInterval);
+        this.isPressed = false;
+        this.buttonText = 'TOUCH';
+        this.echoMessage = '';
+        this.milestoneMessage = '';
+        localStorage.removeItem('echo_cooldown');
+        this.cdr.detectChanges();
+      } else {
+        const m = Math.floor(remaining / 60)
+          .toString()
+          .padStart(2, '0');
+        const s = (remaining % 60).toString().padStart(2, '0');
+        this.buttonText = `${m}:${s}`;
+
+        if (isFromLoad) {
+          this.echoMessage = `Your echo is traveling.`;
+        }
+        this.cdr.detectChanges();
+      }
+    }, 1000);
+  }
+
+  private playMysticSound() {
+    const audio = new Audio('sounds/sound.mp3');
+    audio.volume = 0.8;
+    audio.play().catch((error) => {
+      console.log('Audio playback failed:', error);
+    });
+  }
+
+  private fireRedConfetti() {
+    confetti({
+      particleCount: 150,
+      spread: 100,
+      origin: { y: 0.75 },
+      colors: ['#ff0000', '#800000', '#ff4d4d', '#ffffff'],
+      disableForReducedMotion: true,
+    });
   }
 
   private getTimeAgo(date: Date): string {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-
-    if (seconds < 60) {
-      return seconds === 1 ? '1 second ago' : `${seconds} seconds ago`;
-    }
-
+    if (seconds < 60) return seconds === 1 ? '1 second ago' : `${seconds} seconds ago`;
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) {
-      return minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`;
-    }
-
+    if (minutes < 60) return minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) {
-      return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
-    }
-
+    if (hours < 24) return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
     const days = Math.floor(hours / 24);
     return days === 1 ? '1 day ago' : `${days} days ago`;
   }
@@ -204,16 +233,10 @@ export class HomeComponent implements OnInit, OnDestroy {
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = R * c;
-
-    return Math.round(distance).toLocaleString('en-US');
+    return Math.round(R * c).toLocaleString('en-US');
   }
 
   private deg2rad(deg: number): number {
     return deg * (Math.PI / 180);
-  }
-
-  public goToStats() {
-    this.router.navigate(['/stats']);
   }
 }
