@@ -8,8 +8,9 @@ import {
   query,
   orderBy,
   limit,
-  getCountFromServer,
   getDocs,
+  doc,
+  runTransaction,
 } from '@angular/fire/firestore';
 import confetti from 'canvas-confetti';
 
@@ -111,12 +112,14 @@ export class HomeComponent implements OnInit, OnDestroy {
     let currentLat: number | null = null;
     let currentLon: number | null = null;
     let location = 'Unknown';
+    let city = 'Unknown';
+    let country = 'Unknown';
 
     try {
       const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
       const geoData = await res.json();
-      const city = geoData.city || '';
-      const country = geoData.country || '';
+      city = geoData.city || '';
+      country = geoData.country || '';
 
       location =
         city && country ? `${city}, ${country}` : city ? city : country ? country : 'Unknown';
@@ -174,8 +177,76 @@ export class HomeComponent implements OnInit, OnDestroy {
         timestamp: serverTimestamp(),
       });
 
-      const countSnapshot = await getCountFromServer(clicksRef);
-      const totalClicks = countSnapshot.data().count;
+      const statsRef = doc(this.firestore, 'global_stats', 'data');
+      let totalClicks = 0;
+
+      await runTransaction(this.firestore, async (transaction) => {
+        const docSnap = await transaction.get(statsRef);
+        const data = docSnap.exists()
+          ? docSnap.data()
+          : {
+              totalTracked: 0,
+              recentTimestamps: [],
+              countries: {},
+              cities: {},
+              dates: {},
+              times: [0, 0, 0, 0],
+              recentWhispers: [],
+              mapData: {},
+            };
+
+        data['totalTracked'] += 1;
+        totalClicks = data['totalTracked'];
+
+        const now = Date.now();
+        data['recentTimestamps'].push(now);
+        const oneDayAgo = now - 24 * 60 * 60 * 1000;
+        data['recentTimestamps'] = data['recentTimestamps'].filter((t: number) => t > oneDayAgo);
+
+        const ctry = country || 'Unknown';
+        data['countries'][ctry] = (data['countries'][ctry] || 0) + 1;
+
+        const cty = city || 'Unknown';
+        data['cities'][cty] = (data['cities'][cty] || 0) + 1;
+
+        const dateStr = new Date(now).toLocaleDateString([], { month: 'short', day: 'numeric' });
+        data['dates'][dateStr] = (data['dates'][dateStr] || 0) + 1;
+
+        const hour = new Date(now).getHours();
+        let timeIndex = 3;
+        if (hour >= 0 && hour < 6) timeIndex = 0;
+        else if (hour >= 6 && hour < 12) timeIndex = 1;
+        else if (hour >= 12 && hour < 18) timeIndex = 2;
+        data['times'][timeIndex] += 1;
+
+        const timeStr = new Date(now).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        });
+        data['recentWhispers'].unshift({
+          location: location,
+          time: timeStr,
+          timestamp: now,
+          lat: currentLat,
+          lon: currentLon,
+        });
+
+        if (data['recentWhispers'].length > 5) {
+          data['recentWhispers'] = data['recentWhispers'].slice(0, 5);
+        }
+
+        if (currentLat !== null && currentLon !== null) {
+          const key = `${currentLat}_${currentLon}`;
+          if (data['mapData'][key]) {
+            data['mapData'][key].count += 1;
+          } else {
+            data['mapData'][key] = { lat: currentLat, lon: currentLon, count: 1, name: location };
+          }
+        }
+
+        transaction.set(statsRef, data);
+      });
 
       setTimeout(() => {
         const milestones = [10, 50, 100, 1000, 10000, 100000, 1000000];

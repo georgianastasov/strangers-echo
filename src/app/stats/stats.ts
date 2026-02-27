@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
-import { Firestore, collection, query, orderBy, limit, onSnapshot } from '@angular/fire/firestore';
+import { Firestore, doc, onSnapshot } from '@angular/fire/firestore';
 import { CommonModule } from '@angular/common';
 import {
   NgApexchartsModule,
@@ -93,103 +93,34 @@ export class StatsComponent implements OnInit, OnDestroy {
   }
 
   public ngOnInit() {
-    const clicksRef = collection(this.firestore, 'clicks');
-    const q = query(clicksRef, orderBy('timestamp', 'desc'), limit(500));
+    const docRef = doc(this.firestore, 'global_stats', 'data');
 
-    this.unsubscribe = onSnapshot(q, (snapshot) => {
-      const now = new Date();
-      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    this.unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (!docSnap.exists()) return;
 
-      this.totalTracked = snapshot.docs.length;
-      this.lastHour = 0;
-      this.last24h = 0;
+      const data = docSnap.data();
+      const now = Date.now();
+      const oneHourAgo = now - 60 * 60 * 1000;
 
-      const countryCounts: Record<string, number> = {};
-      const cityCounts: Record<string, number> = {};
-      const dateCounts: Record<string, number> = {};
-      const locationCoordsMap = new Map<
-        string,
-        { lat: number; lon: number; count: number; name: string }
-      >();
+      this.totalTracked = data['totalTracked'] || 0;
 
-      let night = 0,
-        morning = 0,
-        afternoon = 0,
-        evening = 0;
+      const timestamps = data['recentTimestamps'] || [];
+      this.last24h = timestamps.length;
+      this.lastHour = timestamps.filter((t: number) => t > oneHourAgo).length;
 
-      let latestKey: string | null = null;
+      this.recentWhispers = data['recentWhispers'] || [];
 
-      this.recentWhispers = [];
-
-      snapshot.docs.forEach((doc, index) => {
-        const data = doc.data();
-        if (!data['timestamp']) return;
-
-        const date = data['timestamp'].toDate();
-        const fullLocation = data['location'] || 'Unknown';
-
-        const parts = fullLocation.split(',');
-        const city = parts[0] ? parts[0].trim() : 'Unknown';
-        const country = parts.length > 1 ? parts[parts.length - 1].trim() : 'Unknown';
-
-        if (date > oneHourAgo) this.lastHour++;
-        if (date > oneDayAgo) this.last24h++;
-
-        countryCounts[country] = (countryCounts[country] || 0) + 1;
-        cityCounts[city] = (cityCounts[city] || 0) + 1;
-
-        const dateString = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-        dateCounts[dateString] = (dateCounts[dateString] || 0) + 1;
-
-        const hour = date.getHours();
-        if (hour >= 0 && hour < 6) night++;
-        else if (hour >= 6 && hour < 12) morning++;
-        else if (hour >= 12 && hour < 18) afternoon++;
-        else evening++;
-
-        if (
-          data['lat'] !== undefined &&
-          data['lon'] !== undefined &&
-          data['lat'] !== null &&
-          data['lon'] !== null
-        ) {
-          const key = `${data['lat']}_${data['lon']}`;
-
-          if (index === 0 && now.getTime() - date.getTime() < 5000) {
-            latestKey = key;
-          }
-
-          if (locationCoordsMap.has(key)) {
-            locationCoordsMap.get(key)!.count++;
-          } else {
-            locationCoordsMap.set(key, {
-              lat: data['lat'],
-              lon: data['lon'],
-              count: 1,
-              name: fullLocation,
-            });
-          }
-        }
-
-        if (index < 5) {
-          this.recentWhispers.push({
-            location: fullLocation,
-            time: date.toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-            }),
-          });
-        }
-      });
-
+      const cityCounts = data['cities'] || {};
       this.topCities = Object.entries(cityCounts)
-        .map(([name, count]) => ({ name, count }))
+        .map(([name, count]) => ({ name, count: Number(count) }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
-      this.processChartData(dateCounts, countryCounts, [night, morning, afternoon, evening]);
+      this.processChartData(
+        data['dates'] || {},
+        data['countries'] || {},
+        data['times'] || [0, 0, 0, 0],
+      );
 
       this.chartsReady = true;
       this.cdr.detectChanges();
@@ -198,7 +129,20 @@ export class StatsComponent implements OnInit, OnDestroy {
         if (!this.map) {
           this.initMap();
         }
-        this.updateMap(locationCoordsMap, latestKey);
+
+        let latestKey: string | null = null;
+        if (this.recentWhispers.length > 0) {
+          const latest = this.recentWhispers[0];
+          if (now - latest.timestamp < 5000 && latest.lat !== null && latest.lon !== null) {
+            latestKey = `${latest.lat}_${latest.lon}`;
+          }
+        }
+
+        const mapData = data['mapData'] || {};
+        const locationMap = new Map();
+        Object.keys(mapData).forEach((k) => locationMap.set(k, mapData[k]));
+
+        this.updateMap(locationMap, latestKey);
       }, 100);
     });
   }
@@ -261,7 +205,8 @@ export class StatsComponent implements OnInit, OnDestroy {
     countryCounts: Record<string, number>,
     timeDistribution: number[],
   ) {
-    const sortedDates = Object.keys(dateCounts).reverse();
+    const allDates = Object.keys(dateCounts);
+    const sortedDates = allDates.slice(-7);
     const timelineData = sortedDates.map((date) => dateCounts[date]);
 
     this.timelineChartOptions.series = [{ name: 'Whispers', data: timelineData }];
