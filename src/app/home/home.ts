@@ -8,8 +8,8 @@ import {
   query,
   orderBy,
   limit,
-  onSnapshot,
   getCountFromServer,
+  getDocs,
 } from '@angular/fire/firestore';
 import confetti from 'canvas-confetti';
 
@@ -36,121 +36,12 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   public ngOnInit() {
     this.checkCooldown();
-
-    const clicksRef = collection(this.firestore, 'clicks');
-    const q = query(clicksRef, orderBy('timestamp', 'desc'), limit(1));
-
-    onSnapshot(q, (snapshot) => {
-      if (!snapshot.empty && !this.isPressed) {
-        this.previousClick = snapshot.docs[0].data();
-      }
-    });
   }
 
   public ngOnDestroy() {
     if (this.cooldownInterval) {
       clearInterval(this.cooldownInterval);
     }
-  }
-
-  public async pressButton() {
-    if (this.isPressed) return;
-
-    this.playMysticSound();
-
-    this.isPressed = true;
-    this.buttonText = 'TOUCHED';
-
-    let currentLat: number | null = null;
-    let currentLon: number | null = null;
-    let location = 'Unknown';
-
-    try {
-      const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
-      const geoData = await res.json();
-      const city = geoData.city || '';
-      const country = geoData.country || '';
-
-      location =
-        city && country ? `${city}, ${country}` : city ? city : country ? country : 'Unknown';
-
-      if (geoData.latitude && geoData.longitude) {
-        currentLat = parseFloat(geoData.latitude);
-        currentLon = parseFloat(geoData.longitude);
-      }
-    } catch (error) {
-      location = 'Unknown';
-    }
-
-    let normalMessage = 'You are the first to touch this.';
-
-    if (this.previousClick && this.previousClick.timestamp) {
-      const loc = this.previousClick.location || 'Unknown';
-      const date = this.previousClick.timestamp.toDate();
-      const timeAgo = this.getTimeAgo(date);
-
-      let distanceText = '';
-      if (
-        currentLat !== null &&
-        currentLon !== null &&
-        this.previousClick.lat &&
-        this.previousClick.lon
-      ) {
-        const distance = this.calculateDistance(
-          currentLat,
-          currentLon,
-          this.previousClick.lat,
-          this.previousClick.lon,
-        );
-        distanceText = ` (${distance}km away)`;
-      }
-
-      normalMessage = `Someone in ${loc}${distanceText} touched this ${timeAgo}.`;
-    }
-
-    try {
-      const clicksRef = collection(this.firestore, 'clicks');
-      await addDoc(clicksRef, {
-        location: location,
-        lat: currentLat,
-        lon: currentLon,
-        timestamp: serverTimestamp(),
-      });
-
-      const countSnapshot = await getCountFromServer(clicksRef);
-      const totalClicks = countSnapshot.data().count;
-
-      setTimeout(() => {
-        const milestones = [10, 50, 100, 1000, 10000, 100000, 1000000, 10000000];
-        const isMilestone = milestones.includes(totalClicks);
-
-        if (isMilestone) {
-          this.milestoneMessage = `YOU ARE THE ${totalClicks.toLocaleString()}TH PERSON TO TOUCH THIS`;
-          this.echoMessage = '';
-          this.fireRedConfetti();
-        } else {
-          this.echoMessage = normalMessage;
-          this.milestoneMessage = '';
-        }
-
-        const endTime = Date.now() + 60000;
-        localStorage.setItem('echo_cooldown', endTime.toString());
-        this.startCooldownTimer(endTime, false);
-        this.cdr.detectChanges();
-      }, 600);
-    } catch (error) {
-      setTimeout(() => {
-        this.echoMessage = normalMessage;
-        const endTime = Date.now() + 60000;
-        localStorage.setItem('echo_cooldown', endTime.toString());
-        this.startCooldownTimer(endTime, false);
-        this.cdr.detectChanges();
-      }, 600);
-    }
-  }
-
-  public goToStats() {
-    this.router.navigate(['/stats']);
   }
 
   private checkCooldown() {
@@ -196,9 +87,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private playMysticSound() {
     const audio = new Audio('sounds/sound.mp3');
     audio.volume = 0.8;
-    audio.play().catch((error) => {
-      console.log('Audio playback failed:', error);
-    });
+    audio.play().catch(() => {});
   }
 
   private fireRedConfetti() {
@@ -209,6 +98,112 @@ export class HomeComponent implements OnInit, OnDestroy {
       colors: ['#ff0000', '#800000', '#ff4d4d', '#ffffff'],
       disableForReducedMotion: true,
     });
+  }
+
+  public async pressButton() {
+    if (this.isPressed) return;
+
+    this.playMysticSound();
+
+    this.isPressed = true;
+    this.buttonText = 'TOUCHED';
+
+    let currentLat: number | null = null;
+    let currentLon: number | null = null;
+    let location = 'Unknown';
+
+    try {
+      const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
+      const geoData = await res.json();
+      const city = geoData.city || '';
+      const country = geoData.country || '';
+
+      location =
+        city && country ? `${city}, ${country}` : city ? city : country ? country : 'Unknown';
+
+      if (geoData.latitude && geoData.longitude) {
+        currentLat = parseFloat(geoData.latitude);
+        currentLon = parseFloat(geoData.longitude);
+      }
+    } catch (error) {
+      location = 'Unknown';
+    }
+
+    try {
+      const clicksRef = collection(this.firestore, 'clicks');
+      const qLatest = query(clicksRef, orderBy('timestamp', 'desc'), limit(1));
+      const latestSnap = await getDocs(qLatest);
+
+      if (!latestSnap.empty) {
+        this.previousClick = latestSnap.docs[0].data();
+      }
+    } catch (error) {}
+
+    let normalMessage = 'You are the first to touch this.';
+
+    if (this.previousClick && this.previousClick.timestamp) {
+      const loc = this.previousClick.location || 'Unknown';
+      const date = this.previousClick.timestamp.toDate();
+      const timeAgo = this.getTimeAgo(date);
+
+      let distanceText = '';
+      if (
+        currentLat !== null &&
+        currentLon !== null &&
+        this.previousClick.lat &&
+        this.previousClick.lon
+      ) {
+        const distance = this.calculateDistance(
+          currentLat,
+          currentLon,
+          this.previousClick.lat,
+          this.previousClick.lon,
+        );
+        distanceText = ` (${distance}km away)`;
+      }
+
+      normalMessage = `Someone in ${loc}${distanceText} touched this ${timeAgo}.`;
+    }
+
+    try {
+      const clicksRef = collection(this.firestore, 'clicks');
+      await addDoc(clicksRef, {
+        location: location,
+        lat: currentLat,
+        lon: currentLon,
+        timestamp: serverTimestamp(),
+      });
+
+      const countSnapshot = await getCountFromServer(clicksRef);
+      const totalClicks = countSnapshot.data().count;
+
+      setTimeout(() => {
+        const milestones = [10, 50, 100, 1000, 10000, 100000, 1000000];
+        const isMilestone = milestones.includes(totalClicks);
+
+        if (isMilestone) {
+          this.milestoneMessage = `YOU ARE THE ${totalClicks.toLocaleString()}TH PERSON TO TOUCH THIS`;
+          this.echoMessage = '';
+          this.fireRedConfetti();
+        } else {
+          this.echoMessage = normalMessage;
+          this.milestoneMessage = '';
+        }
+
+        const endTime = Date.now() + 60000;
+        localStorage.setItem('echo_cooldown', endTime.toString());
+        this.startCooldownTimer(endTime, false);
+        this.cdr.detectChanges();
+      }, 600);
+    } catch (error) {
+      setTimeout(() => {
+        this.echoMessage = normalMessage;
+        const endTime = Date.now() + 60000;
+        localStorage.setItem('echo_cooldown', endTime.toString());
+        this.startCooldownTimer(endTime, false);
+        this.cdr.detectChanges();
+      }, 600);
+    }
   }
 
   private getTimeAgo(date: Date): string {
@@ -238,5 +233,9 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private deg2rad(deg: number): number {
     return deg * (Math.PI / 180);
+  }
+
+  public goToStats() {
+    this.router.navigate(['/stats']);
   }
 }
