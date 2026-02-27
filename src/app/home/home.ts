@@ -121,7 +121,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       const totalClicks = countSnapshot.data().count;
 
       setTimeout(() => {
-        const milestones = [10, 50, 100, 1000, 10000, 100000, 1000000];
+        const milestones = [10, 50, 100, 1000, 10000, 100000, 1000000, 10000000];
         const isMilestone = milestones.includes(totalClicks);
 
         if (isMilestone) {
