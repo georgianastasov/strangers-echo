@@ -4,7 +4,7 @@
     <div class="orb orb-3"></div>
 </div>
 
-<main class="app-container">
+<main class="app-container" *ngIf="!isAbyssMode()">
     <img src="favicon.png" class="site-logo" alt="Logo">
 
     <button class="stats-button" [class.visible]="echoMessage() !== '' || milestoneMessage() !== ''"
@@ -18,7 +18,9 @@
     </button>
 
     <div class="button-wrapper">
-        <button class="mystic-button" [class.pressed]="isPressed()" (click)="pressButton()">
+        <button class="mystic-button" [class.pressed]="isPressed()" [class.pulsing]="isPulsing()"
+            (click)="pressButton()" (mousedown)="onButtonDown($event)" (mouseup)="onButtonUp()"
+            (mouseleave)="onButtonUp()" (touchstart)="onButtonDown($event)" (touchend)="onButtonUp()">
             <span>{{ buttonText() }}</span>
         </button>
     </div>
@@ -28,7 +30,30 @@
     </div>
 
     <footer class="legal-disclaimer">
-        Anonymous experiment. Touching shares your approximate city. No IPs are stored. <br/>
+        Anonymous experiment. Touching shares your approximate city. <br />
         100% Anonymous. No personal data or IP addresses are stored.
     </footer>
 </main>
+
+<div class="abyss-overlay" *ngIf="isAbyssMode()">
+    <div class="abyss-content glass-panel">
+        <h2 class="glitch-text" data-text="SYSTEM COMPROMISED">SYSTEM COMPROMISED</h2>
+        <p class="abyss-hint">The key lies in the echo of the stranger.</p>
+
+        <div class="cipher-matrix">
+            <div class="matrix-row"><span>Y</span><span>X</span><span>Z</span><span>Y</span><span>Y</span><span>F</span>
+            </div>
+            <div class="matrix-row"><span>.</span><span>U</span><span>G</span><span>Z</span><span>/</span><span>Z</span>
+            </div>
+            <div class="matrix-row"><span>X</span><span>I</span><span>Y</span><span>Y</span><span>A</span><span>S</span>
+            </div>
+            <div class="matrix-row">
+                <span>V</span><span>O</span><span>G</span><span>W</span><span>J</span><span>F</span><span>H</span><span>E</span>
+            </div>
+        </div>
+
+        <input type="text" class="abyss-input" placeholder="ENTER DECRYPT ANSWER" (input)="checkCipher($event)">
+
+        <button class="abyss-escape-btn" (click)="escapeAbyss()">[ INITIATE REBOOT ]</button>
+    </div>
+</div>

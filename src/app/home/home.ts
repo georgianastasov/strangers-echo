@@ -1,22 +1,13 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import {
-  Firestore,
-  collection,
-  addDoc,
-  serverTimestamp,
-  query,
-  orderBy,
-  limit,
-  getDocs,
-  doc,
-  runTransaction,
-} from '@angular/fire/firestore';
+import { CommonModule } from '@angular/common';
+import { FirestoreService } from '../firestore.service';
 import confetti from 'canvas-confetti';
 
 @Component({
   selector: 'app-home',
   standalone: true,
+  imports: [CommonModule],
   templateUrl: './home.html',
   styleUrls: ['./home.css'],
 })
@@ -26,9 +17,14 @@ export class HomeComponent implements OnInit, OnDestroy {
   public milestoneMessage = signal('');
   public buttonText = signal('TOUCH');
 
+  public isAbyssMode = signal(false);
+  public isPulsing = signal(false);
+  private holdTimeout: any;
+  private pulseTimeout: any; 
+
   private previousClick: any = null;
   private cooldownInterval: any;
-  private firestore: Firestore = inject(Firestore);
+  private fss: FirestoreService = inject(FirestoreService);
 
   constructor(private router: Router) {}
 
@@ -40,6 +36,47 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (this.cooldownInterval) {
       clearInterval(this.cooldownInterval);
     }
+    if (this.holdTimeout) {
+      clearTimeout(this.holdTimeout);
+    }
+    if (this.pulseTimeout) {
+      clearTimeout(this.pulseTimeout);
+    }
+  }
+
+  public onButtonDown(event: Event) {
+    if (this.isAbyssMode()) return;
+    if (this.isPressed()) return;
+
+    this.pulseTimeout = setTimeout(() => {
+      this.isPulsing.set(true);
+    }, 4000);
+
+    this.holdTimeout = setTimeout(() => {
+      this.isPulsing.set(false);
+      this.isAbyssMode.set(true);
+    }, 7000);
+  }
+
+  public onButtonUp() {
+    if (this.holdTimeout) clearTimeout(this.holdTimeout);
+    if (this.pulseTimeout) clearTimeout(this.pulseTimeout);
+    this.isPulsing.set(false);
+  }
+
+  public checkCipher(event: Event) {
+    const input = (event.target as HTMLInputElement).value;
+    const normalizedInput = input.trim().toLowerCase();
+    
+    const correctKey = 'github.com/georgianastasov';
+
+    if (normalizedInput === correctKey) {
+      window.location.href = 'https://github.com/georgianastasov';
+    }
+  }
+
+  public escapeAbyss() {
+    this.isAbyssMode.set(false);
   }
 
   private checkCooldown() {
@@ -97,6 +134,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   public async pressButton() {
+    if (this.isAbyssMode()) return;
     if (this.isPressed()) return;
 
     this.playMysticSound();
@@ -127,9 +165,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     try {
-      const clicksRef = collection(this.firestore, 'clicks');
-      const qLatest = query(clicksRef, orderBy('timestamp', 'desc'), limit(1));
-      const latestSnap = await getDocs(qLatest);
+      const clicksRef = this.fss.collection('clicks');
+      const qLatest = this.fss.query(clicksRef, this.fss.orderBy('timestamp', 'desc'), this.fss.limit(1));
+      const latestSnap = await this.fss.getDocs(qLatest);
 
       if (!latestSnap.empty) {
         this.previousClick = latestSnap.docs[0].data();
@@ -163,18 +201,18 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     try {
-      const clicksRef = collection(this.firestore, 'clicks');
-      await addDoc(clicksRef, {
+      const clicksRef = this.fss.collection('clicks');
+      await this.fss.addDoc(clicksRef, {
         location: location,
         lat: currentLat,
         lon: currentLon,
-        timestamp: serverTimestamp(),
+        timestamp: this.fss.serverTimestamp(),
       });
 
-      const statsRef = doc(this.firestore, 'global_stats', 'data');
+      const statsRef = this.fss.doc('global_stats', 'data');
       let totalClicks = 0;
 
-      await runTransaction(this.firestore, async (transaction) => {
+      await this.fss.runTransaction(async (transaction) => {
         const docSnap = await transaction.get(statsRef);
         const data = docSnap.exists()
           ? docSnap.data()

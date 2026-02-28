@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, OnDestroy, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Firestore, doc, onSnapshot } from '@angular/fire/firestore';
 import { CommonModule } from '@angular/common';
+import { FirestoreService } from '../firestore.service';
 import {
   NgApexchartsModule,
   ApexAxisChartSeries,
@@ -87,7 +87,7 @@ export class StatsComponent implements OnInit, OnDestroy {
   public cityChartOptions!: Partial<BarChartOptions>;
   public timeOfDayOptions!: Partial<DonutChartOptions>;
 
-  private firestore: Firestore = inject(Firestore);
+  private fss: FirestoreService = inject(FirestoreService);
   private unsubscribe: any;
   private map: L.Map | undefined;
   private markersLayer: L.LayerGroup | undefined;
@@ -97,9 +97,9 @@ export class StatsComponent implements OnInit, OnDestroy {
   }
 
   public ngOnInit() {
-    const docRef = doc(this.firestore, 'global_stats', 'data');
+    const docRef = this.fss.doc('global_stats', 'data');
 
-    this.unsubscribe = onSnapshot(docRef, (docSnap) => {
+    this.unsubscribe = this.fss.onSnapshot(docRef, (docSnap) => {
       if (!docSnap.exists()) return;
 
       const data = docSnap.data();
