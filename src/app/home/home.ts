@@ -139,7 +139,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (this.isAbyssMode() || this.isPressed()) return;
 
     this.isLoading.set(true);
-    this.playMysticSound();
 
     this.buttonText.set('TOUCH...');
 
@@ -281,6 +280,8 @@ export class HomeComponent implements OnInit, OnDestroy {
         transaction.set(statsRef, data);
       });
 
+      this.playMysticSound();
+      
       this.isPressed.set(true);
       this.buttonText.set('TOUCHED');
       this.isLoading.set(false); 
