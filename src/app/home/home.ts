@@ -19,8 +19,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   public isAbyssMode = signal(false);
   public isPulsing = signal(false);
+  public isLoading = signal(false);
+
   private holdTimeout: any;
-  private pulseTimeout: any; 
+  private pulseTimeout: any;
 
   private previousClick: any = null;
   private cooldownInterval: any;
@@ -67,7 +69,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   public checkCipher(event: Event) {
     const input = (event.target as HTMLInputElement).value;
     const normalizedInput = input.trim().toLowerCase();
-    
+
     const correctKey = 'github.com/georgianastasov';
 
     if (normalizedInput === correctKey) {
@@ -134,12 +136,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   public async pressButton() {
-    if (this.isAbyssMode()) return;
-    if (this.isPressed()) return;
+    if (this.isAbyssMode() || this.isPressed()) return;
 
+    this.isLoading.set(true);
     this.playMysticSound();
-    this.isPressed.set(true);
-    this.buttonText.set('TOUCHED');
+
+    this.buttonText.set('TOUCH...');
 
     let currentLat: number | null = null;
     let currentLon: number | null = null;
@@ -161,18 +163,25 @@ export class HomeComponent implements OnInit, OnDestroy {
         currentLon = parseFloat(geoData.longitude);
       }
     } catch (error) {
+      this.echoMessage.set('Location detection failed, but your echo is still traveling.');
       location = 'Unknown';
     }
 
     try {
       const clicksRef = this.fss.collection('clicks');
-      const qLatest = this.fss.query(clicksRef, this.fss.orderBy('timestamp', 'desc'), this.fss.limit(1));
+      const qLatest = this.fss.query(
+        clicksRef,
+        this.fss.orderBy('timestamp', 'desc'),
+        this.fss.limit(1),
+      );
       const latestSnap = await this.fss.getDocs(qLatest);
 
       if (!latestSnap.empty) {
         this.previousClick = latestSnap.docs[0].data();
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error('Error fetching latest click:', error);
+    }
 
     let normalMessage = 'You are the first to touch this.';
 
@@ -196,7 +205,6 @@ export class HomeComponent implements OnInit, OnDestroy {
         );
         distanceText = ` (${distance}km away)`;
       }
-
       normalMessage = `Someone in ${loc}${distanceText} touched this ${timeAgo}.`;
     }
 
@@ -245,54 +253,47 @@ export class HomeComponent implements OnInit, OnDestroy {
         data['dates'][dateStr] = (data['dates'][dateStr] || 0) + 1;
 
         const hour = new Date(now).getHours();
-        let timeIndex = 3;
-        if (hour >= 0 && hour < 6) timeIndex = 0;
-        else if (hour >= 6 && hour < 12) timeIndex = 1;
-        else if (hour >= 12 && hour < 18) timeIndex = 2;
+        let timeIndex = hour < 6 ? 0 : hour < 12 ? 1 : hour < 18 ? 2 : 3;
         data['times'][timeIndex] += 1;
 
-        const timeStr = new Date(now).toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        });
         data['recentWhispers'].unshift({
           location: location,
-          time: timeStr,
+          time: new Date(now).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }),
           timestamp: now,
           lat: currentLat,
           lon: currentLon,
         });
 
-        if (data['recentWhispers'].length > 5) {
+        if (data['recentWhispers'].length > 5)
           data['recentWhispers'] = data['recentWhispers'].slice(0, 5);
-        }
 
         if (currentLat !== null && currentLon !== null) {
           const key = `${currentLat}_${currentLon}`;
-          if (data['mapData'][key]) {
-            data['mapData'][key].count += 1;
-          } else {
-            data['mapData'][key] = { lat: currentLat, lon: currentLon, count: 1, name: location };
-          }
+          data['mapData'][key] = data['mapData'][key]
+            ? { ...data['mapData'][key], count: data['mapData'][key].count + 1 }
+            : { lat: currentLat, lon: currentLon, count: 1, name: location };
         }
 
         transaction.set(statsRef, data);
       });
 
+      this.isPressed.set(true);
+      this.buttonText.set('TOUCHED');
+      this.isLoading.set(false); 
+
       setTimeout(() => {
         const milestones = [10, 50, 100, 1000, 10000, 100000, 1000000, 10000000];
-        const isMilestone = milestones.includes(totalClicks);
-
-        if (isMilestone) {
+        if (milestones.includes(totalClicks)) {
           this.milestoneMessage.set(
             `YOU ARE THE ${totalClicks.toLocaleString()}TH PERSON TO TOUCH THIS`,
           );
-          this.echoMessage.set('');
           this.fireRedConfetti();
         } else {
           this.echoMessage.set(normalMessage);
-          this.milestoneMessage.set('');
         }
 
         const endTime = Date.now() + 60000;
@@ -300,12 +301,11 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.startCooldownTimer(endTime, false);
       }, 600);
     } catch (error) {
-      setTimeout(() => {
-        this.echoMessage.set(normalMessage);
-        const endTime = Date.now() + 60000;
-        localStorage.setItem('echo_cooldown', endTime.toString());
-        this.startCooldownTimer(endTime, false);
-      }, 600);
+      this.isLoading.set(false);
+      this.echoMessage.set(normalMessage);
+      const endTime = Date.now() + 60000;
+      localStorage.setItem('echo_cooldown', endTime.toString());
+      this.startCooldownTimer(endTime, false);
     }
   }
 

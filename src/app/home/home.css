@@ -691,3 +691,33 @@
         clip: rect(99px, 9999px, 11px, 0);
     }
 }
+
+.loading-dots::after {
+    content: '...';
+    display: inline-block;
+    animation: dots 1.5s steps(4, end) infinite;
+    width: 20px;
+    text-align: left;
+}
+
+@keyframes dots {
+    0% {
+        content: '';
+    }
+
+    25% {
+        content: '.';
+    }
+
+    50% {
+        content: '..';
+    }
+
+    75% {
+        content: '...';
+    }
+
+    100% {
+        content: '';
+    }
+}
