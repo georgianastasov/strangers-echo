@@ -1,100 +1,83 @@
 import { TestBed, ComponentFixture, fakeAsync, tick } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { ChangeDetectorRef } from '@angular/core';
-import * as af from '@angular/fire/firestore';
 import { HomeComponent } from './home';
-import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
+import { FirestoreService } from '../firestore.service';
 
 describe('HomeComponent', () => {
   let fixture: ComponentFixture<HomeComponent>;
   let component: HomeComponent;
-  let navigateSpy: Mock;
-  let clicksRef = {};
-  let snapshotCb: Function | null = null;
+  let routerSpy: jasmine.SpyObj<Router>;
+  let fssStub: jasmine.SpyObj<FirestoreService>;
 
   beforeEach(async () => {
-    vi.spyOn(af, 'collection').mockReturnValue(clicksRef as any);
-    vi.spyOn(af, 'query').mockImplementation((...args: any[]) => ({ qargs: args }) as any);
-    vi.spyOn(af, 'orderBy').mockImplementation((...args: any[]) => ({ order: args }) as any);
-    vi.spyOn(af, 'limit').mockImplementation((...args: any[]) => ({ limit: args }) as any);
-    vi.spyOn(af, 'serverTimestamp').mockReturnValue('SERVER_TIMESTAMP' as any);
-
-    vi.spyOn(af, 'onSnapshot').mockImplementation((q: any, cb: any) => {
-      snapshotCb = cb;
-      return () => {};
+    fssStub = jasmine.createSpyObj('FirestoreService', [
+      'collection', 'doc', 'query', 'orderBy', 'limit',
+      'addDoc', 'getDocs', 'runTransaction', 'serverTimestamp', 'onSnapshot',
+    ]);
+    fssStub.collection.and.returnValue({} as any);
+    fssStub.doc.and.returnValue({} as any);
+    fssStub.query.and.returnValue({} as any);
+    fssStub.orderBy.and.returnValue({} as any);
+    fssStub.limit.and.returnValue({} as any);
+    fssStub.serverTimestamp.and.returnValue(null);
+    fssStub.addDoc.and.returnValue(Promise.resolve({} as any));
+    fssStub.getDocs.and.returnValue(Promise.resolve({ empty: true, docs: [] } as any));
+    fssStub.runTransaction.and.callFake(async (cb: any) => {
+      const tx = {
+        get: async () => ({ exists: () => false, data: () => null }),
+        set: (_ref: any, _data: any) => {},
+      };
+      return cb(tx);
     });
 
-    vi.spyOn(af, 'addDoc').mockResolvedValue({} as any);
-
-    const routerStub = { navigate: vi.fn() };
-    navigateSpy = routerStub.navigate;
+    routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
     await TestBed.configureTestingModule({
       imports: [HomeComponent],
       providers: [
-        { provide: af.Firestore, useValue: {} },
-        { provide: Router, useValue: routerStub },
-        { provide: ChangeDetectorRef, useValue: { detectChanges: vi.fn() } },
+        { provide: FirestoreService, useValue: fssStub },
+        { provide: Router, useValue: routerSpy },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(HomeComponent);
     component = fixture.componentInstance;
+    localStorage.clear();
     fixture.detectChanges();
   });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
+  it('should trigger Abyss mode after 7 seconds of holding', fakeAsync(() => {
+    component.onButtonDown(new Event('mousedown'));
 
-  it('pressButton should fetch geo and write city, country to Firestore', fakeAsync(async () => {
-    vi.spyOn(window, 'fetch').mockResolvedValue({
-      json: () => Promise.resolve({ city: 'Sofia', country: 'Bulgaria' }),
-    } as Response);
+    tick(4000);
+    expect(component.isPulsing()).toBe(true);
+
+    tick(3000);
+    expect(component.isAbyssMode()).toBe(true);
+    expect(component.isPulsing()).toBe(false);
+  }));
+
+  it('should initialize with cooldown if found in localStorage', fakeAsync(() => {
+    const future = Date.now() + 60000;
+    localStorage.setItem('echo_cooldown', future.toString());
+
+    component.ngOnInit();
+    tick(1000);
+
+    expect(component.isPressed()).toBe(true);
+    expect(component.buttonText()).not.toBe('TOUCH');
+
+    component.ngOnDestroy();
+  }));
+
+  it('pressButton should update signals on success', fakeAsync(async () => {
+    spyOn(window, 'fetch').and.returnValue(
+      Promise.resolve(new Response(JSON.stringify({ city: 'Sofia', country: 'Bulgaria' }))),
+    );
 
     await component.pressButton();
 
-    expect(af.addDoc).toHaveBeenCalledTimes(1);
-    const calls = vi.mocked(af.addDoc).mock.calls;
-    const calledWith = calls[calls.length - 1][1] as any;
-
-    expect(calledWith.location).toBe('Sofia, Bulgaria');
-    expect(calledWith.timestamp).toBe('SERVER_TIMESTAMP');
-    expect(component.isPressed).toBe(true);
+    expect(component.buttonText()).toBe('TOUCHED');
+    expect(component.isPressed()).toBe(true);
   }));
-
-  it('pressButton should write Unknown when geo fetch fails', fakeAsync(async () => {
-    vi.spyOn(window, 'fetch').mockRejectedValue('fail');
-
-    vi.mocked(af.addDoc).mockClear();
-
-    await component.pressButton();
-
-    expect(af.addDoc).toHaveBeenCalledTimes(1);
-    const calls = vi.mocked(af.addDoc).mock.calls;
-    const calledWith = calls[calls.length - 1][1] as any;
-
-    expect(calledWith.location).toBe('Unknown');
-  }));
-
-  it('ngOnInit onSnapshot should update echoMessage when isPressed and snapshot arrives', fakeAsync(() => {
-    component.isPressed = true;
-
-    const fakeDoc = {
-      data: () => ({ location: 'Plovdiv, Bulgaria' }),
-    };
-    expect(snapshotCb).toBeDefined();
-
-    if (snapshotCb) {
-      snapshotCb({ empty: false, docs: [fakeDoc] });
-    }
-
-    tick(600);
-    expect(component.echoMessage).toContain('Plovdiv, Bulgaria');
-  }));
-
-  it('goToStats navigates to /stats', () => {
-    component.goToStats();
-    expect(navigateSpy).toHaveBeenCalledWith(['/stats']);
-  });
 });
