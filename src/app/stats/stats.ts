@@ -283,7 +283,7 @@ export class StatsComponent implements OnInit, OnDestroy {
       circle.bindTooltip(
         `<div style="text-align:center;">
            <span style="color:#ffcccc; font-size:0.9rem;">${loc.name}</span><br/>
-           <b style="color:#ff4d4d; font-size:1.1rem;">${loc.count}</b> whispers
+           <b style="color:#ff4d4d; font-size:1.1rem;">${loc.count}</b> Echoes
          </div>`,
         {
           className: 'custom-map-tooltip',
@@ -322,7 +322,7 @@ export class StatsComponent implements OnInit, OnDestroy {
     const sortedDates = allDates.slice(-7);
     const timelineData = sortedDates.map((date) => dateCounts[date]);
 
-    this.timelineChartOptions.series = [{ name: 'Whispers', data: timelineData }];
+    this.timelineChartOptions.series = [{ name: 'Echoes', data: timelineData }];
     this.timelineChartOptions.xaxis = {
       ...this.timelineChartOptions.xaxis,
       categories: sortedDates,

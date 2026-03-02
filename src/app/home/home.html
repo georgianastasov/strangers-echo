@@ -24,7 +24,7 @@
                 (mouseup)="onButtonUp()" (mouseleave)="onButtonUp()" (touchstart)="onButtonDown($event)"
                 (touchend)="onButtonUp()">
 
-                <span *ngIf="isLoading()">TOUCHING<span class="loading-dots"></span></span>
+                <span *ngIf="isLoading()">SENDING ECHO<span class="loading-dots"></span></span>
 
                 <span *ngIf="!isLoading()">{{ buttonText() }}</span>
             </button>

@@ -15,7 +15,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   public isPressed = signal(false);
   public echoMessage = signal('');
   public milestoneMessage = signal('');
-  public buttonText = signal('TOUCH');
+  public buttonText = signal('SEND ECHO');
 
   public isAbyssMode = signal(false);
   public isPulsing = signal(false);
@@ -101,7 +101,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       if (remaining <= 0) {
         clearInterval(this.cooldownInterval);
         this.isPressed.set(false);
-        this.buttonText.set('TOUCH');
+        this.buttonText.set('SEND ECHO');
         this.echoMessage.set('');
         this.milestoneMessage.set('');
         localStorage.removeItem('echo_cooldown');
@@ -140,7 +140,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     this.isLoading.set(true);
 
-    this.buttonText.set('TOUCH...');
+    this.buttonText.set('SENDING ECHO...');
 
     let currentLat: number | null = null;
     let currentLon: number | null = null;
@@ -281,9 +281,9 @@ export class HomeComponent implements OnInit, OnDestroy {
       });
 
       this.playMysticSound();
-      
+
       this.isPressed.set(true);
-      this.buttonText.set('TOUCHED');
+      this.buttonText.set('ECHO SENT');
       this.isLoading.set(false); 
 
       setTimeout(() => {
