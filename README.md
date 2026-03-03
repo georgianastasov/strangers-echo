@@ -131,4 +131,11 @@ npm run build
 firebase deploy --only hosting
 ```
 
+## ⚖️ License
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 📧 Contact
+Got questions, feedback, or a brilliant idea? Reach out!
+**Email: ggeorgianastasov@gmail.com**
+
 Designed and built with passion. 🔴
