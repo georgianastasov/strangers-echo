@@ -1,4 +1,4 @@
-# 🔴 Strangers Echo
+# 🔴 Stranger's Echo
 
 > A real-time global connection experiment & advanced analytics dashboard, wrapped in a breathtaking 3D Glassmorphism UI.
 
