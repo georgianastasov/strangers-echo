@@ -6,7 +6,7 @@ Live Project: https://strangers-echo.web.app/
 
 ## 📖 The Concept
 
-Strangers Echo starts with a very simple premise: A single, mystic red button.  
+Stranger's Echo starts with a very simple premise: A single, mystic red button.  
 When you touch it, your approximate location is recorded, and the screen reveals who touched the button right before you, how long ago, and exactly how many kilometers away they were. It’s a fleeting, real-time connection with a complete stranger somewhere else on the planet.
 
 But behind this simple button lies a powerful command center. The application anonymously tracks global interactions, calculates geographic distances using the Haversine formula, and visualizes the global spread of "echoes" in a high-tech, real-time dashboard.
